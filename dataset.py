@@ -18,7 +18,7 @@ TRAIN_TEST_RATIO = 0.9
 def generate_data(n, tree, filepath):
     data = None
     for i in tqdm(range(n)):
-        x = np.random.rand(NUM_FEATURES)
+        x = np.random.uniform(low=-1, high=1, size=NUM_FEATURES)
         y = tree.compute(x)
         tree.reset()
         row = np.append(x, y)

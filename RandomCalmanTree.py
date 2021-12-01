@@ -11,7 +11,7 @@ class RandomCalmanTree:
 
     operations = {
         "sum": np.sum,
-        "product": np.prod
+        "max": np.max
     }
 
     def __init__(self, n, p):
