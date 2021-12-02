@@ -24,8 +24,18 @@ class DNN(pl.LightningModule):
         y_hat = self.net(x)
         y_hat = torch.squeeze(y_hat)
         loss = F.mse_loss(y_hat, y)
-        self.log("train_loss", loss)
+        self.log("train_loss", loss, on_epoch=True)
         return loss
+
+    def validation_step(self, val_batch, batch_idx):
+        x, y = val_batch
+        y = y.type(torch.FloatTensor)  # necessary for MSE
+        x = x.view(x.size(0), -1)
+        y_hat = self.net(x)
+        y_hat = torch.squeeze(y_hat)
+        val_loss = F.mse_loss(y_hat, y)
+        self.log("val_loss", val_loss)
+        return val_loss
 
     def configure_optimizers(self):
         optimizer = torch.optim.Adam(self.parameters(), lr=1e-3)
