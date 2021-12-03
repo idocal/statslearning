@@ -1,4 +1,5 @@
 import os
+import json
 import torch
 from torch.utils.data import Dataset, DataLoader
 from pytorch_lightning import LightningDataModule, Trainer
@@ -9,6 +10,7 @@ import argparse
 
 TRAIN_FILE = "train.csv"
 TEST_FILE = "test.csv"
+META_FILE = "meta.json"
 
 
 class RCTDataset(Dataset):
@@ -56,10 +58,15 @@ if __name__ == "__main__":
     if not os.path.exists(exp_path):
         raise AttributeError(f"Experiment {args.name} does not exist")
 
+    # define training and test data
     train_path = os.path.join(exp_path, TRAIN_FILE)
     test_path = os.path.join(exp_path, TEST_FILE)
+    meta = json.load(open(os.path.join(exp_path, META_FILE)))
+    # n_feats = len(pd.read_csv(test_path, header=None).columns) - 2
+    n_feats = meta['features']
 
-    trainer = Trainer(max_epochs=100)
+    # train the model
+    trainer = Trainer(max_epochs=300)
     dm = RCTDataModule(train_path=train_path, test_path=test_path)
-    model = DNN(n_feats=300)
+    model = DNN(n_feats=n_feats, layers=[])
     trainer.fit(model, dm)

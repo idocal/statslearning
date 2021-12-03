@@ -6,12 +6,18 @@ import pytorch_lightning as pl
 
 class DNN(pl.LightningModule):
 
-    def __init__(self, n_feats, layers=[50, 20]):
+    def __init__(self, n_feats, layers=None):
         super().__init__()
-        modules = [nn.Linear(n_feats, layers[0]), nn.ReLU()]
-        for i in range(1, len(layers)):
-            modules += [nn.Linear(layers[i-1], layers[i]), nn.ReLU()]
-        modules += [nn.Linear(layers[-1], 1)]
+        if layers is None:
+            layers = [n_feats * 2]
+        modules = []
+        if not len(layers):  # perceptron
+            modules = [nn.Linear(n_feats, 1)]
+        else:
+            modules += [nn.Linear(n_feats, layers[0]), nn.ReLU()]
+            for i in range(1, len(layers)):
+                modules += [nn.Linear(layers[i-1], layers[i]), nn.ReLU()]
+            modules += [nn.Linear(layers[-1], 1)]
         self.net = nn.Sequential(*modules)
 
     def forward(self, x):
