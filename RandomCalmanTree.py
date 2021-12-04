@@ -95,6 +95,18 @@ class RandomCalmanTree:
         source_idx = max(self.tree.nodes)  # by construction
         return self._compute(source_idx)
 
+    @property
+    def leaves(self):
+        return [n for n, d in self.tree.nodes(data=True)
+                if d.get('type') == 'leaf']
+
+    @property
+    def layers(self):
+        last = self.tree.nodes[max(self.tree.nodes)]['layer']
+        layers = [0] * (last + 1)
+        for node in self.tree.nodes:
+            layers[node['layer']] += 1
+
 
 if __name__ == "__main__":
     t = RandomCalmanTree(NUM_NODES, DENSITY)
