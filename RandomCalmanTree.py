@@ -104,8 +104,9 @@ class RandomCalmanTree:
     def layers(self):
         last = self.tree.nodes[max(self.tree.nodes)]['layer']
         layers = [0] * (last + 1)
-        for node in self.tree.nodes:
+        for idx, node in self.tree.nodes(data=True):
             layers[node['layer']] += 1
+        return layers
 
 
 if __name__ == "__main__":
