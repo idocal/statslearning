@@ -3,7 +3,11 @@ import json
 import torch
 from torch.utils.data import Dataset, DataLoader
 from pytorch_lightning import LightningDataModule, Trainer
+from pytorch_lightning.loggers import TensorBoardLogger
+import networkx as nx
 from DNN import DNN
+from GPDNN import GPDNN
+from CNN import CNN
 import pandas as pd
 import argparse
 
@@ -11,6 +15,8 @@ import argparse
 TRAIN_FILE = "train.csv"
 TEST_FILE = "test.csv"
 META_FILE = "meta.json"
+TREE_FILE = "f.gpickle"
+LOG_DIR = "lightning_logs"
 
 
 class RCTDataset(Dataset):
@@ -52,21 +58,52 @@ class RCTDataModule(LightningDataModule):
 if __name__ == "__main__":
     # parse args from user
     parser = argparse.ArgumentParser()
-    parser.add_argument('name', type=str)
+    parser.add_argument('names', type=str, nargs='+')
     args = parser.parse_args()
-    exp_path = os.path.join('experiments', args.name)
-    if not os.path.exists(exp_path):
-        raise AttributeError(f"Experiment {args.name} does not exist")
 
-    # define training and test data
-    train_path = os.path.join(exp_path, TRAIN_FILE)
-    test_path = os.path.join(exp_path, TEST_FILE)
-    meta = json.load(open(os.path.join(exp_path, META_FILE)))
-    # n_feats = len(pd.read_csv(test_path, header=None).columns) - 2
-    n_feats = meta['features']
+    for name in args.names:
+        exp_path = os.path.join('experiments', name)
+        if not os.path.exists(exp_path):
+            raise AttributeError(f"Experiment {name} does not exist")
 
-    # train the model
-    trainer = Trainer(max_epochs=300)
-    dm = RCTDataModule(train_path=train_path, test_path=test_path)
-    model = DNN(n_feats=n_feats, layers=[])
-    trainer.fit(model, dm)
+        # define training and test data
+        train_path = os.path.join(exp_path, TRAIN_FILE)
+        test_path = os.path.join(exp_path, TEST_FILE)
+        meta = json.load(open(os.path.join(exp_path, META_FILE)))
+        # n_feats = len(pd.read_csv(test_path, header=None).columns) - 2
+        n_feats = meta['features']
+
+        # train shallow neural network the model
+        dm = RCTDataModule(train_path=train_path, test_path=test_path)
+        logger = TensorBoardLogger(LOG_DIR, version=name, name="shallow")
+        trainer = Trainer(max_epochs=50, logger=logger)
+        shallow = DNN(n_feats=n_feats, layers=[])
+        trainer.fit(shallow, dm)
+
+        # graph prior dnn
+        tree_path = os.path.join(exp_path, TREE_FILE)
+        rct = nx.read_gpickle(tree_path)
+        logger = TensorBoardLogger(LOG_DIR, version=name, name="gpdnn")
+        trainer = Trainer(max_epochs=50, logger=logger)
+        gpdnn = GPDNN(rct)
+        trainer.fit(gpdnn, dm)
+
+        # train one layer dnn
+        one_dnn = DNN(n_feats=n_feats, layers=[n_feats*2])
+        logger = TensorBoardLogger(LOG_DIR, version=name, name="one_layer")
+        trainer = Trainer(max_epochs=50, logger=logger)
+        trainer.fit(one_dnn, dm)
+
+        # two layer dnn
+        one_dnn = DNN(n_feats=n_feats, layers=[n_feats*2])
+        logger = TensorBoardLogger(LOG_DIR, version=name, name="two_layer")
+        trainer = Trainer(max_epochs=50, logger=logger)
+        two_dnn = DNN(n_feats=n_feats, layers=[n_feats, n_feats])
+        trainer.fit(two_dnn, dm)
+
+        # CNN
+        one_dnn = DNN(n_feats=n_feats, layers=[n_feats*2])
+        logger = TensorBoardLogger(LOG_DIR, version=name, name="cnn")
+        trainer = Trainer(max_epochs=50, logger=logger)
+        cnn = CNN(n_feats=n_feats)
+        trainer.fit(cnn, dm)
